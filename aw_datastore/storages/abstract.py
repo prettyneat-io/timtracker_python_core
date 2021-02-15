@@ -27,6 +27,7 @@ class AbstractStorage(metaclass=ABCMeta):
         limit: int,
         starttime: Optional[datetime] = None,
         endtime: Optional[datetime] = None,
+        synced: Optional[bool] = False,
     ) -> List[Event]:
         raise NotImplementedError
 

@@ -278,6 +278,7 @@ class PeeweeStorage(AbstractStorage):
         limit: int,
         starttime: Optional[datetime] = None,
         endtime: Optional[datetime] = None,
+        synced: Optional[bool] = False,
     ):
         if limit == 0:
             return []
@@ -293,6 +294,8 @@ class PeeweeStorage(AbstractStorage):
         if endtime:
             endtime = endtime.astimezone(timezone.utc)
             q = q.where(EventModel.timestamp <= endtime)
+
+        q = q.where(EventModel.is_synced == synced)
         return [Event(**e) for e in list(map(EventModel.json, q.execute()))]
 
     def get_eventcount(
