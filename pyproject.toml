@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "aw-core"
-version = "0.4.2"
+version = "0.5.2"
 description = "Core library for ActivityWatch"
 authors = ["Erik Bjäreholt <erik@bjareho.lt>", "Johan Bjäreholt <johan@bjareho.lt>"]
 license = "MPL-2.0"
 readme = "README.md"
 homepage = "https://activitywatch.net/"
-repository = "https://github.com/ActivityWatch/aw-core/"
+repository = "https://github.com/prettyneat-io/timtracker_python_core"
 documentation = "https://activitywatch.readthedocs.io/"
 packages = [
     { include = "aw_core" },
