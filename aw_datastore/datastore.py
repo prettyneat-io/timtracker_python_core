@@ -69,6 +69,11 @@ class Datastore:
             limit, starttime, endtime, synced
         )
 
+    def sync_event(self, event_id):
+        return self.storage_strategy.sync_event(
+            event_id
+        )
+
 
 class Bucket:
     def __init__(self, datastore: Datastore, bucket_id: str) -> None:

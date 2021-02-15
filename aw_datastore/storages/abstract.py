@@ -90,5 +90,5 @@ class AbstractStorage(metaclass=ABCMeta):
         raise NotImplementedError
     
     @abstractmethod
-    def sync_event(self, event_id: str) -> Event:
+    def sync_event(self, event_id: int) -> Event:
         raise NotImplementedError
