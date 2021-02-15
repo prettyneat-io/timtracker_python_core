@@ -13,6 +13,7 @@ from peewee import (
     DateTimeField,
     ForeignKeyField,
     AutoField,
+    BooleanField,
 )
 from playhouse.sqlite_ext import SqliteExtDatabase
 
