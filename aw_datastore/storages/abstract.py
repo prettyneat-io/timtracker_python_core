@@ -21,6 +21,10 @@ class AbstractStorage(metaclass=ABCMeta):
     @abstractmethod
     def buckets(self) -> Dict[str, dict]:
         raise NotImplementedError
+    
+    @abstractmethod
+    def get_all_events(self) -> List:
+        raise NotImplementedError
 
     @abstractmethod
     def create_bucket(
