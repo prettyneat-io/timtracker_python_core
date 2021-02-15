@@ -65,7 +65,7 @@ class Datastore:
         return self.storage_strategy.buckets()
 
     def get_all_events(self, limit: int = -1, starttime: datetime = None, endtime: datetime = None) -> List[Event]:
-        return self.ds.storage_strategy.get_all_events(
+        return self.storage_strategy.get_all_events(
             limit, starttime, endtime
         )
 
