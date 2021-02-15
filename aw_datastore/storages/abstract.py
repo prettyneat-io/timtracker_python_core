@@ -88,3 +88,7 @@ class AbstractStorage(metaclass=ABCMeta):
     @abstractmethod
     def replace_last(self, bucket_id: str, event: Event) -> None:
         raise NotImplementedError
+    
+    @abstractmethod
+    def sync_event(self, event_id: str) -> Event:
+        raise NotImplementedError

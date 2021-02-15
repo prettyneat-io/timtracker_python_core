@@ -225,12 +225,11 @@ class PeeweeStorage(AbstractStorage):
         event.id = e.id
         return event
 
-    def sync_event(self, event):
-        e = self._get_event_by_id(event.id)
+    def sync_event(self, event_id):
+        e = self._get_event_by_id(event_id)
         e.is_synced = True
         e.save()
-        event.id = e.id
-        return event
+        return e
 
     def delete(self, bucket_id, event_id):
         return (
