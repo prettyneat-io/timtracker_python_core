@@ -201,6 +201,13 @@ class PeeweeStorage(AbstractStorage):
             .get()
         )
 
+    def _get_event_by_id(self, event_id) -> EventModel:
+        return (
+            EventModel.select()
+            .where(EventModel.id == event_id)
+            .get()
+        )
+
     def _get_last(self, bucket_id) -> EventModel:
         return (
             EventModel.select()
@@ -214,6 +221,13 @@ class PeeweeStorage(AbstractStorage):
         e.timestamp = event.timestamp
         e.duration = event.duration.total_seconds()
         e.datastr = json.dumps(event.data)
+        e.save()
+        event.id = e.id
+        return event
+
+    def sync_event(self, event):
+        e = self._get_event_by_id(event.id)
+        e.is_synced = True
         e.save()
         event.id = e.id
         return event
