@@ -96,6 +96,7 @@ class EventModel(BaseModel):
             "timestamp": self.timestamp,
             "duration": float(self.duration),
             "data": json.loads(self.datastr),
+            "is_synced": self.is_synced,
         }
 
 
