@@ -115,7 +115,7 @@ class Event(dict):
 
     @property
     def is_synced(self) -> IsSynced:
-        return self["is_synced"] if self._hasprop("is_synced") else False
+        return self["is_synced"] if self._hasprop("is_synced") else True
 
     @is_synced.setter
     def is_synced(self, is_synced: IsSynced) -> None:
