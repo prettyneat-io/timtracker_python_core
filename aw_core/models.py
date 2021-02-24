@@ -15,6 +15,7 @@ Id = Optional[Union[int, str]]
 ConvertableTimestamp = Union[datetime, str]
 Duration = Union[timedelta, Number]
 Data = Dict[str, Any]
+IsSynced = bool
 
 
 def _timestamp_parse(ts_in: ConvertableTimestamp) -> datetime:
@@ -43,22 +44,8 @@ class Event(dict):
     def __init__(
         self,
         id: Id = None,
-        timestamp: ConvertableTimestamp = None,
-        duration: Duration = 0,
-        data: Data = dict(),
     ) -> None:
         self.id = id
-        if timestamp is None:
-            logger.warning(
-                "Event initializer did not receive a timestamp argument, using now as timestamp"
-            )
-            # FIXME: The typing.cast here was required for mypy to shut up, weird...
-            self.timestamp = datetime.now(typing.cast(timezone, timezone.utc))
-        else:
-            # The conversion needs to be explicit here for mypy to pick it up (lacks support for properties)
-            self.timestamp = _timestamp_parse(timestamp)
-        self.duration = duration  # type: ignore
-        self.data = data
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Event):
@@ -90,6 +77,7 @@ class Event(dict):
         json_data = self.copy()
         json_data["timestamp"] = self.timestamp.astimezone(timezone.utc).isoformat()
         json_data["duration"] = self.duration.total_seconds()
+        json_data["is_synced"] = self.is_synced
         return json_data
 
     def to_json_str(self) -> str:
@@ -108,6 +96,14 @@ class Event(dict):
     @id.setter
     def id(self, id: Id) -> None:
         self["id"] = id
+
+    @property
+    def is_synced(self) -> IsSynced:
+        return self["is_synced"] if self._hasprop("is_synced") else False
+
+    @is_synced.setter
+    def is_synced(self, is_synced: IsSynced) -> None:
+        self["is_synced"] = is_synced
 
     @property
     def data(self) -> dict:
