@@ -44,8 +44,24 @@ class Event(dict):
     def __init__(
         self,
         id: Id = None,
+        timestamp: ConvertableTimestamp = None,
+        duration: Duration = 0,
+        is_synced: IsSynced = False,
+        data: Data = dict(),
     ) -> None:
         self.id = id
+        if timestamp is None:
+            logger.warning(
+                "Event initializer did not receive a timestamp argument, using now as timestamp"
+            )
+            # FIXME: The typing.cast here was required for mypy to shut up, weird...
+            self.timestamp = datetime.now(typing.cast(timezone, timezone.utc))
+        else:
+            # The conversion needs to be explicit here for mypy to pick it up (lacks support for properties)
+            self.timestamp = _timestamp_parse(timestamp)
+        self.duration = duration  # type: ignore
+        self.is_synced = is_synced
+        self.data = data
 
     def __eq__(self, other: object) -> bool:
         if isinstance(other, Event):
