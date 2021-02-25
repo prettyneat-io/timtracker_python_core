@@ -275,6 +275,7 @@ class PeeweeStorage(AbstractStorage):
     
     def get_all_events(
         self,
+        offset: int,
         limit: int,
         starttime: Optional[datetime] = None,
         endtime: Optional[datetime] = None,
@@ -285,7 +286,9 @@ class PeeweeStorage(AbstractStorage):
         q = (
             EventModel.select()
             .order_by(EventModel.timestamp.desc())
+            .offset(offset)
             .limit(limit)
+            
         )
         if starttime:
             # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored

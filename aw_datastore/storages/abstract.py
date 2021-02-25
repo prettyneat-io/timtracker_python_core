@@ -24,6 +24,7 @@ class AbstractStorage(metaclass=ABCMeta):
     
     def get_all_events(
         self,
+        offset: int,
         limit: int,
         starttime: Optional[datetime] = None,
         endtime: Optional[datetime] = None,

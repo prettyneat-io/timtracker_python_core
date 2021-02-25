@@ -64,9 +64,9 @@ class Datastore:
     def buckets(self):
         return self.storage_strategy.buckets()
 
-    def get_all_events(self, limit: int = -1, starttime: datetime = None, endtime: datetime = None, synced: bool = None) -> List[Event]:
+    def get_all_events(self, offset: int = 0, limit: int = -1, starttime: datetime = None, endtime: datetime = None, synced: bool = None) -> List[Event]:
         return self.storage_strategy.get_all_events(
-            limit, starttime, endtime, synced
+            offset, limit, starttime, endtime, synced
         )
 
     def sync_event(self, event_id):
