@@ -298,6 +298,13 @@ class PeeweeStorage(AbstractStorage):
             endtime = endtime.astimezone(timezone.utc)
             q = q.where(EventModel.timestamp <= endtime)
 
+        q = q.where( 
+            (EventModel.datastr ** '%"afk%') |
+            (EventModel.datastr ** '%reddit%') |
+            (EventModel.datastr ** '%Facebook%') |
+            (EventModel.datastr ** '%Instagram%') |
+            (EventModel.datastr ** '%devRant%') |
+            (EventModel.datastr ** '%Messenger%'))
         if synced is not None:
             q = q.where(EventModel.is_synced == synced)
         return [Event(**e) for e in list(map(EventModel.json, q.execute()))]
