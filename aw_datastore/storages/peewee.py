@@ -299,7 +299,7 @@ class PeeweeStorage(AbstractStorage):
             q = q.where(EventModel.timestamp <= endtime)
 
         q = q.where( 
-            (EventModel.datastr ** '%"afk%') |
+            (EventModel.datastr ** '%"status": "afk"%') |
             (EventModel.datastr ** '%reddit%') |
             (EventModel.datastr ** '%Facebook%') |
             (EventModel.datastr ** '%Instagram%') |
