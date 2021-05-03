@@ -286,9 +286,9 @@ class PeeweeStorage(AbstractStorage):
         q = (
             EventModel.select()
             .order_by(EventModel.timestamp.desc())
+            .group_by(EventModel.timestamp)
             .offset(offset)
             .limit(limit)
-            .group_by(EventModel.timestamp)
             
         )
         if starttime:
