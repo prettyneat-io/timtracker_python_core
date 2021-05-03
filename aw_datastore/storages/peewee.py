@@ -288,6 +288,7 @@ class PeeweeStorage(AbstractStorage):
             .order_by(EventModel.timestamp.desc())
             .offset(offset)
             .limit(limit)
+            .group_by(EventModel.timestamp)
             
         )
         if starttime:
