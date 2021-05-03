@@ -294,7 +294,7 @@ class PeeweeStorage(AbstractStorage):
         if starttime:
             # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
             starttime = starttime.astimezone(timezone.utc)
-            akf = afk.where(starttime <= EventModel.timestamp)
+            afk = afk.where(starttime <= EventModel.timestamp)
         if endtime:
             endtime = endtime.astimezone(timezone.utc)
             afk = afk.where(EventModel.timestamp <= endtime)
