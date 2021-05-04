@@ -5,16 +5,8 @@ import os
 import logging
 import iso8601
 
-from peewee import (
-    Model,
-    CharField,
-    IntegerField,
-    DecimalField,
-    DateTimeField,
-    ForeignKeyField,
-    AutoField,
-    BooleanField,
-)
+from peewee import *
+
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 from aw_core.models import Event
@@ -286,7 +278,8 @@ class PeeweeStorage(AbstractStorage):
         afk = (
             EventModel.select()
             .order_by(EventModel.timestamp.desc())
-            .group_by(datetime.strptime(EventModel.timestamp, '%Y/%m/%d %H:%M:%S'))
+            .group_by(fn.strftime('%Y-%m-%d %H:%M:%S', EventModel.timestamp))
+            # .group_by(datetime.strptime(EventModel.timestamp, '%Y/%m/%d %H:%M:%S'))
             .offset(offset)
             .limit(limit)
             
