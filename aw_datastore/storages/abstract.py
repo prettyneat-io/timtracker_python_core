@@ -19,10 +19,24 @@ class AbstractStorage(metaclass=ABCMeta):
         raise NotImplementedError
 
     @abstractmethod
+    def delete_unwanted_events() -> None:
+        raise NotImplementedError
+
+    @abstractmethod
     def buckets(self) -> Dict[str, dict]:
         raise NotImplementedError
     
     def get_all_events(
+        self,
+        offset: int,
+        limit: int,
+        starttime: Optional[datetime] = None,
+        endtime: Optional[datetime] = None,
+        synced: Optional[bool] = None,
+    ) -> List[Event]:
+        raise NotImplementedError
+
+    def get_all_new_events(
         self,
         offset: int,
         limit: int,

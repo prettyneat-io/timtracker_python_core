@@ -318,6 +318,9 @@ class SqliteStorage(AbstractStorage):
             )
         return events
 
+
+    
+
     def get_eventcount(
         self,
         bucket_id: str,

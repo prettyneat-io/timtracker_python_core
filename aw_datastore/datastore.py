@@ -40,6 +40,9 @@ class Datastore:
 
         return self.bucket_instances[bucket_id]
 
+    def delete_unwanted_events(self):
+        self.storage_strategy.delete_unwanted_events()
+        
     def create_bucket(
         self,
         bucket_id: str,
@@ -66,6 +69,11 @@ class Datastore:
 
     def get_all_events(self, offset: int = 0, limit: int = -1, starttime: datetime = None, endtime: datetime = None, synced: bool = None) -> List[Event]:
         return self.storage_strategy.get_all_events(
+            offset, limit, starttime, endtime, synced
+        )
+
+    def get_all_new_events(self, offset: int = 0, limit: int = -1, starttime: datetime = None, endtime: datetime = None, synced: bool = None) -> List[Event]:
+        return self.storage_strategy.get_all_new_events(
             offset, limit, starttime, endtime, synced
         )
 

@@ -125,6 +125,11 @@ class PeeweeStorage(AbstractStorage):
         buckets = {bucket.id: bucket.json() for bucket in BucketModel.select()}
         return buckets
 
+    def delete_unwanted_events(self):
+        queryDelete = 'BEGIN TRANSACTION; DROP TABLE IF EXISTS _RetainTable; CREATE TEMP TABLE _RetainTable (id, timestamp); --, bucket_id, timestamp, duration, datastr, is_synced, syncable); INSERT INTO _RetainTable -- SELECT  e.*, --        1 AS Syncable -- SELECT e.id, e.bucket_id, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 ) || CAST(\'00000+00\' AS VARCHAR) AS timestamp  , e.duration, e.datastr, e.is_synced, --        1 AS Syncable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE \'%facebook%\' OR datastr LIKE \'%twitter%\' OR datastr LIKE \'%instagram%\' OR datastr LIKE \'%messenger%\' OR datastr LIKE \'%reddit%\' ) AND duration > 0 UNION -- SELECT MAX(e.id), e.bucket_id, t.timestamp || CAST(\'00000+00\' AS VARCHAR)  , e.duration, e.datastr, e.is_synced, SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE \'%not-afK%\') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE \'%"afk"%\' ORDER  BY id desc; SELECT * FROM _RetainTable; --SELECT COUNT(*) FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DROP TABLE _RetainTable; COMMIT;'
+
+        deleteNoSenceEvents = self.db.execute_sql(queryDelete)
+
     def create_bucket(
         self,
         bucket_id: str,
@@ -321,6 +326,70 @@ class PeeweeStorage(AbstractStorage):
             afk = afk.where(EventModel.is_synced == synced)
             activity = activity.where(EventModel.is_synced == synced)
         return [Event(**e1) for e1 in list(map(EventModel.json, afk.execute()))] + [Event(**e2) for e2 in list(map(EventModel.json, activity.execute()))]
+
+    def get_all_new_events(
+        self,
+        offset: int,
+        limit: int,
+        starttime: Optional[datetime] = None,
+        endtime: Optional[datetime] = None,
+        synced: Optional[bool] = None,
+    ):
+        if limit == 0:
+            return []
+
+        
+        queryEvents = 'SELECT * FROM (SELECT e.id, e.bucket_id, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 ) || CAST(\'00000+00\' AS VARCHAR) AS timestamp  , e.duration, e.datastr, e.is_synced, 1 AS Syncable FROM   eventmodel e WHERE  ( datastr LIKE \'%facebook%\' OR datastr LIKE \'%twitter%\' OR datastr LIKE \'%instagram%\' OR datastr LIKE \'%messenger%\' OR datastr LIKE \'%reddit%\' ) AND duration > 0 UNION SELECT MAX(e.id), e.bucket_id, t.timestamp || CAST(\'00000+00\' AS VARCHAR)  , e.duration, e.datastr, e.is_synced, CASE WHEN id < _maxTable.MaxId THEN 1 ELSE 0 END AS Syncable FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE \'%not-afK%\') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE \'%"afk"%\' ORDER  BY timestamp desc) t'
+        executeQueryEvents = self.db.execute_sql(queryEvents)
+
+        queryEvents += 'LIMIT '+offset+', '+limit+''
+        events = executeQueryEvents.fetchall()
+        # afk = (
+        #     EventModel.select()
+        #     .order_by(EventModel.timestamp.desc())
+        #     .group_by(fn.strftime('%Y-%m-%d %H:%M:%S', EventModel.timestamp))
+        #     # .group_by(datetime.strptime(EventModel.timestamp, '%Y/%m/%d %H:%M:%S'))
+        #     .offset(offset)
+        #     .limit(limit)
+            
+        # )
+        # if starttime:
+        #     # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
+        #     starttime = starttime.astimezone(timezone.utc)
+        #     afk = afk.where(starttime <= EventModel.timestamp)
+        # if endtime:
+        #     endtime = endtime.astimezone(timezone.utc)
+        #     afk = afk.where(EventModel.timestamp <= endtime)
+        
+        # afk = afk.where( 
+        #     (EventModel.datastr.contains('"status": "afk"')))
+        
+        # activity = (
+        #     EventModel.select()
+        #     .order_by(EventModel.timestamp.desc())
+        #     .offset(offset)
+        #     .limit(limit)
+            
+        # )
+        # if starttime:
+        #     # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
+        #     starttime = starttime.astimezone(timezone.utc)
+        #     activity = activity.where(starttime <= EventModel.timestamp)
+        # if endtime:
+        #     endtime = endtime.astimezone(timezone.utc)
+        #     activity = activity.where(EventModel.timestamp <= endtime)
+        
+        # activity = activity.where( 
+        #     (EventModel.datastr.contains('reddit')) |
+        #     (EventModel.datastr.contains('Facebook')) |
+        #     (EventModel.datastr.contains('Instagram')) |
+        #     (EventModel.datastr.contains('devRant')) |
+        #     (EventModel.datastr.contains('Messenger')) |
+        #     (EventModel.datastr.contains('Twitter')))
+        # if synced is not None:
+        #     afk = afk.where(EventModel.is_synced == synced)
+        #     activity = activity.where(EventModel.is_synced == synced)
+        return [Event(**e1) for e1 in list(map(EventModel.json, events))]
 
     def get_eventcount(
         self,
