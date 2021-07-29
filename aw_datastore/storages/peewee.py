@@ -327,3 +327,37 @@ class PeeweeStorage(AbstractStorage):
             q = q.where(EventModel.timestamp <= endtime)
 
         return q
+
+    def sync_event(self, event_id):
+        e = self._get_event_by_id(event_id)
+        e.is_synced = True
+        e.save()
+        return e
+    def delete_unwanted_events(self):
+        
+        sqlQuery = r"BEGIN TRANSACTION; DROP TABLE IF EXISTS _RetainTable; CREATE TEMP TABLE _RetainTable (id, timestamp); INSERT INTO _RetainTable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE '%facebook%' OR datastr LIKE '%twitter%' OR datastr LIKE '%instagram%' OR datastr LIKE '%messenger%' OR datastr LIKE '%reddit%' ) AND duration > 0 UNION SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE '%not-afK%') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE '%afk%' AND NOT LIKE '%not-afk%' ORDER  BY id desc; DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DROP TABLE _RetainTable; COMMIT;"
+        deleted =  self.db.execute_sql(sqlQuery)
+        print(deleted)
+        # sqlQuery = 'DROP TABLE IF EXISTS _RetainTable;'
+        # self.db.execute_sql(sqlQuery)
+        
+        # sqlQuery = 'CREATE TEMP TABLE _RetainTable (id, timestamp); --, bucket_id, timestamp, duration, datastr, is_synced, syncable);'
+        # self.db.execute_sql(sqlQuery)
+        
+        # sqlQuery = 'INSERT INTO _RetainTable -- SELECT  e.*, -- //       1 AS Syncable -- SELECT e.id, e.bucket_id, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 ) || CAST("00000+00" AS VARCHAR) AS timestamp  , e.duration, e.datastr, e.is_synced, --        1 AS Syncable'
+        # self.db.execute_sql(sqlQuery)
+        
+        # sqlQuery = 'SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE "%facebook%" OR datastr LIKE \'%twitter%\' OR datastr LIKE "%instagram%" OR datastr LIKE "%messenger%" OR datastr LIKE "%reddit%" ) AND duration > 0 UNION -- SELECT MAX(e.id), e.bucket_id, t.timestamp || CAST("00000+00" AS VARCHAR)  , e.duration, e.datastr, e.is_synced, SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE "%not-afK%") _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE "%"afk"%" ORDER  BY id desc;'
+        # self.db.execute_sql(sqlQuery)
+
+        # sqlQuery = 'SELECT * FROM _RetainTable; --SELECT COUNT(*) FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);'
+        # self.db.execute_sql(sqlQuery)
+
+        # sqlQuery = 'DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);'
+        # self.db.execute_sql(sqlQuery)
+
+        # sqlQuery = 'DROP TABLE _RetainTable;'
+        # self.db.execute_sql(sqlQuery)
+
+        # sqlQuery = 'COMMIT;'
+        # self.db.execute_sql(sqlQuery)
