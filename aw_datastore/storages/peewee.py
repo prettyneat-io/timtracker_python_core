@@ -361,7 +361,33 @@ class PeeweeStorage(AbstractStorage):
 
         # sqlQuery = 'COMMIT;'
         # self.db.execute_sql(sqlQuery)
-    
+    def get_all_events(
+        self,
+        offset: int,
+        limit: int,
+        starttime: Optional[datetime] = None,
+        endtime: Optional[datetime] = None,
+        synced: Optional[bool] = None,
+    ):
+        if limit == 0:
+            return []
+        afk = (
+            EventModel.select()
+            .order_by(EventModel.timestamp.desc())
+            .group_by(fn.strftime('%Y-%m-%d %H:%M:%S', EventModel.timestamp))
+            # .group_by(datetime.strptime(EventModel.timestamp, '%Y/%m/%d %H:%M:%S'))
+            .offset(offset)
+            .limit(limit)
+            
+        )
+        if starttime:
+            # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
+            starttime = starttime.astimezone(timezone.utc)
+            afk = afk.where(starttime <= EventModel.timestamp)
+        if endtime:
+            endtime = endtime.astimezone(timezone.utc)
+            afk = afk.where(EventModel.timestamp <= endtime)
+        
         afk = afk.where( 
             (EventModel.datastr.contains('"status": "afk"')))
         
