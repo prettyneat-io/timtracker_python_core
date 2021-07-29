@@ -83,6 +83,7 @@ class EventModel(BaseModel):
         )
 
     def json(self):
+        print(self.duration)
         return {
             "id": self.id,
             "timestamp": self.timestamp,
