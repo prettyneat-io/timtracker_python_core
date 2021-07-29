@@ -83,7 +83,6 @@ class EventModel(BaseModel):
         )
 
     def json(self):
-        print(self.duration)
         return {
             "id": self.id,
             "timestamp": self.timestamp,
@@ -212,11 +211,15 @@ class PeeweeStorage(AbstractStorage):
         self.db.execute_sql(sql)
         sql = r"INSERT INTO _RetainTable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE '%facebook%' OR datastr LIKE '%twitter%' OR datastr LIKE '%instagram%' OR datastr LIKE '%messenger%' OR datastr LIKE '%reddit%' ) AND duration > 0 UNION SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE '%not-afK%') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE '%afk%' AND datastr NOT LIKE '%not-afk%' ORDER  BY id desc;"
         self.db.execute_sql(sql)
-        sql = r"DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DROP TABLE _RetainTable;"
+        sql = r"DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);"
         self.db.execute_sql(sql)
-        sql = r" COMMIT;"
-
+        sql = r"DROP TABLE _RetainTable;"
+        self.db.execute_sql(sql)
+        sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId) COMMIT;"
         getEvent = self.db.execute_sql(sql)
+        sql = r" COMMIT;"
+        self.db.execute_sql(sql)
+
         print(getEvent)
         return event
 
