@@ -361,3 +361,33 @@ class PeeweeStorage(AbstractStorage):
 
         # sqlQuery = 'COMMIT;'
         # self.db.execute_sql(sqlQuery)
+    
+        afk = afk.where( 
+            (EventModel.datastr.contains('"status": "afk"')))
+        
+        activity = (
+            EventModel.select()
+            .order_by(EventModel.timestamp.desc())
+            .offset(offset)
+            .limit(limit)
+            
+        )
+        if starttime:
+            # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
+            starttime = starttime.astimezone(timezone.utc)
+            activity = activity.where(starttime <= EventModel.timestamp)
+        if endtime:
+            endtime = endtime.astimezone(timezone.utc)
+            activity = activity.where(EventModel.timestamp <= endtime)
+        
+        activity = activity.where( 
+            (EventModel.datastr.contains('reddit')) |
+            (EventModel.datastr.contains('Facebook')) |
+            (EventModel.datastr.contains('Instagram')) |
+            (EventModel.datastr.contains('devRant')) |
+            (EventModel.datastr.contains('Messenger')) |
+            (EventModel.datastr.contains('Twitter')))
+        if synced is not None:
+            afk = afk.where(EventModel.is_synced == synced)
+            activity = activity.where(EventModel.is_synced == synced)
+        return [Event(**e1) for e1 in list(map(EventModel.json, afk.execute()))] + [Event(**e2) for e2 in list(map(EventModel.json, activity.execute()))]
