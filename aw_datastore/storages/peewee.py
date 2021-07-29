@@ -197,6 +197,7 @@ class PeeweeStorage(AbstractStorage):
         e = EventModel.from_event(self.bucket_keys[bucket_id], event)
         e.save()
         event.id = e.id
+        self.delete_unwanted_events()
         return event
 
     def insert_many(self, bucket_id, events: List[Event], fast=False) -> None:
@@ -214,6 +215,8 @@ class PeeweeStorage(AbstractStorage):
         # See: https://github.com/coleifer/peewee/issues/948
         for chunk in chunks(events_dictlist, 100):
             EventModel.insert_many(chunk).execute()
+
+        self.delete_unwanted_events()
 
     def _get_event(self, bucket_id, event_id) -> EventModel:
         return (
