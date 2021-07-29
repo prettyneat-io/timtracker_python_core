@@ -203,9 +203,9 @@ class PeeweeStorage(AbstractStorage):
         self.db.execute_sql(sql)
         sql = r"DROP TABLE IF EXISTS _MaxId;"
         self.db.execute_sql(sql)
-        sql = r"CREATE TEMP TABLE _RetainTable (id, timestamp);"
+        sql = r"CREATE TABLE _RetainTable (id, timestamp);"
         self.db.execute_sql(sql)
-        sql = r"CREATE TEMP TABLE _MaxId (id);"
+        sql = r"CREATE TABLE _MaxId (id);"
         self.db.execute_sql(sql)
         sql = r"INSERT INTO _MaxId SELECT MAX(id) FROM eventmodel;"
         self.db.execute_sql(sql)
