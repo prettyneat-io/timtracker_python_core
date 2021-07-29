@@ -198,7 +198,7 @@ class PeeweeStorage(AbstractStorage):
         sql = r"BEGIN TRANSACTION;"
         self.db.execute_sql(sql)
         sql = r"INSERT INTO eventmodel (`bucket_id`,`timestamp`, `duration`, `datastr`, `is_synced`) VALUES( {}, '{}','{}',\"{}\",	{} );".format(self.bucket_keys[bucket_id],event.timestamp,event.duration,event.data, 0)
-        self.db.execute_sql(sql)
+        self.db.execute_sql(sql.replace("\\", ""))
         sql = r"DROP TABLE IF EXISTS _RetainTable;"
         self.db.execute_sql(sql)
         sql = r"DROP TABLE IF EXISTS _MaxId;"
@@ -213,7 +213,7 @@ class PeeweeStorage(AbstractStorage):
         self.db.execute_sql(sql)
         sql = r"DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DROP TABLE _RetainTable;"
         self.db.execute_sql(sql)
-        sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId) COMMIT;"
+        sql = r" COMMIT;"
 
         getEvent = self.db.execute_sql(sql)
         print(getEvent)
