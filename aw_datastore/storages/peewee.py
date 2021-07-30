@@ -217,9 +217,11 @@ class PeeweeStorage(AbstractStorage):
         sql = r"COMMIT;"
         c.execute(sql)
         print(getEvent)
+
+        getEvent = getEvent.fetchone()[0]
         # # e = EventModel.from_event(self.bucket_keys[bucket_id], event)
         # e.save()
-        # event.id = e.id
+        event.id = getEvent[0]
         return event
 
     def insert_many(self, bucket_id, events: List[Event], fast=False) -> None:
