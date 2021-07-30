@@ -401,6 +401,13 @@ class PeeweeStorage(AbstractStorage):
         executeQueryEvents = self.db.execute_sql(queryEvents)
         events = executeQueryEvents.fetchall()
         for event in events:
+            eventsList.append({
+                "id": event[0],
+                "timestamp": event[2],
+                "duration": event[3],
+                "data": event[4],
+                "is_synced": event[5],
+            })
             print(event)
         # afk = (
         #     EventModel.select()
@@ -447,7 +454,7 @@ class PeeweeStorage(AbstractStorage):
         # if synced is not None:
         #     afk = afk.where(EventModel.is_synced == synced)
         #     activity = activity.where(EventModel.is_synced == synced)
-        return [Event(**e1) for e1 in list(map(EventModel.json, events))]
+        return [Event(**e1) for e1 in list(map(EventModel.json, eventsList))]
 
     def get_eventcount(
         self,
