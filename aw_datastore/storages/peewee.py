@@ -218,7 +218,6 @@ class PeeweeStorage(AbstractStorage):
         sql = r"COMMIT;"
         c.execute(sql)
         print(getEvent)
-        self.db.set_autocommit(True)
         # # e = EventModel.from_event(self.bucket_keys[bucket_id], event)
         # e.save()
         # event.id = e.id
