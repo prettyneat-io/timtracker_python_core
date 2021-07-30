@@ -183,6 +183,7 @@ class PeeweeStorage(AbstractStorage):
         c = self.sql.cursor()
         
         sql = r"INSERT INTO eventmodel (`bucket_id`,`timestamp`, `duration`, `datastr`, `is_synced`) VALUES( {}, '{}','{}',\"{}\",	{} );".format(self.bucket_keys[bucket_id],event.timestamp,event.duration,event.data, 0)
+        print(sql.replace("\\", ""))
         c.execute(sql.replace("\\", ""))
         self.sql.commit()
         
