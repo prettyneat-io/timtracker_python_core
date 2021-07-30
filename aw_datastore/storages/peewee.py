@@ -215,8 +215,8 @@ class PeeweeStorage(AbstractStorage):
         c.execute(sql)
         
         
-        # sql = r"DROP TABLE _RetainTable;"
-        # c.execute(sql)
+        sql = r"DROP TABLE _RetainTable;"
+        c.execute(sql)
         self.sql.commit()
 
         # sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
