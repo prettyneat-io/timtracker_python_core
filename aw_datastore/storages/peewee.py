@@ -399,6 +399,7 @@ class PeeweeStorage(AbstractStorage):
         print(queryEvents)
         executeQueryEvents = self.db.execute_sql(queryEvents)
         events = executeQueryEvents.fetchall()
+        print(events)
         # afk = (
         #     EventModel.select()
         #     .order_by(EventModel.timestamp.desc())
