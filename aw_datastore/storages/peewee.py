@@ -408,7 +408,7 @@ class PeeweeStorage(AbstractStorage):
                 "data": event[4],
                 "is_synced": event[5],
             })
-            print(event)
+        print(eventsList)
         # afk = (
         #     EventModel.select()
         #     .order_by(EventModel.timestamp.desc())
