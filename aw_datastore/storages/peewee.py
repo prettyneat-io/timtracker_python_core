@@ -1,20 +1,12 @@
 from typing import Optional, List, Dict, Any
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import json
 import os
 import logging
 import iso8601
 
-import peewee
-from peewee import (
-    Model,
-    CharField,
-    IntegerField,
-    DecimalField,
-    DateTimeField,
-    ForeignKeyField,
-    AutoField,
-)
+from peewee import *
+
 from playhouse.sqlite_ext import SqliteExtDatabase
 
 from aw_core.models import Event
@@ -38,20 +30,11 @@ _db = SqliteExtDatabase(None)
 LATEST_VERSION = 2
 
 
-def chunks(ls, n):
-    """Yield successive n-sized chunks from ls.
+def chunks(l, n):
+    """Yield successive n-sized chunks from l.
     From: https://stackoverflow.com/a/312464/965332"""
-    for i in range(0, len(ls), n):
-        yield ls[i : i + n]
-
-
-def dt_plus_duration(dt, duration):
-    # See peewee docs on datemath: https://docs.peewee-orm.com/en/latest/peewee/hacks.html#date-math
-    return peewee.fn.strftime(
-        "%Y-%m-%d %H:%M:%f+00:00",
-        (peewee.fn.julianday(dt) - 2440587.5) * 86400.0 + duration,
-        "unixepoch",
-    )
+    for i in range(0, len(l), n):
+        yield l[i : i + n]
 
 
 class BaseModel(Model):
@@ -87,6 +70,7 @@ class EventModel(BaseModel):
     timestamp = DateTimeField(index=True, default=datetime.now)
     duration = DecimalField()
     datastr = CharField()
+    is_synced = BooleanField(default=False)
 
     @classmethod
     def from_event(cls, bucket_key, event: Event):
@@ -104,6 +88,7 @@ class EventModel(BaseModel):
             "timestamp": self.timestamp,
             "duration": float(self.duration),
             "data": json.loads(self.datastr),
+            "is_synced": self.is_synced,
         }
 
 
@@ -139,6 +124,11 @@ class PeeweeStorage(AbstractStorage):
     def buckets(self) -> Dict[str, Dict[str, Any]]:
         buckets = {bucket.id: bucket.json() for bucket in BucketModel.select()}
         return buckets
+
+    def delete_unwanted_events(self):
+        queryDelete = 'BEGIN TRANSACTION; DROP TABLE IF EXISTS _RetainTable; CREATE TEMP TABLE _RetainTable (id, timestamp); --, bucket_id, timestamp, duration, datastr, is_synced, syncable); INSERT INTO _RetainTable -- SELECT  e.*, --        1 AS Syncable -- SELECT e.id, e.bucket_id, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 ) || CAST(\'00000+00\' AS VARCHAR) AS timestamp  , e.duration, e.datastr, e.is_synced, --        1 AS Syncable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE \'%facebook%\' OR datastr LIKE \'%twitter%\' OR datastr LIKE \'%instagram%\' OR datastr LIKE \'%messenger%\' OR datastr LIKE \'%reddit%\' ) AND duration > 0 UNION -- SELECT MAX(e.id), e.bucket_id, t.timestamp || CAST(\'00000+00\' AS VARCHAR)  , e.duration, e.datastr, e.is_synced, SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE \'%not-afK%\') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE \'%"afk"%\' ORDER  BY id desc; SELECT * FROM _RetainTable; --SELECT COUNT(*) FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DROP TABLE _RetainTable; COMMIT;'
+
+        deleteNoSenceEvents = self.db.execute_sql(queryDelete)
 
     def create_bucket(
         self,
@@ -180,9 +170,46 @@ class PeeweeStorage(AbstractStorage):
             raise Exception("Bucket did not exist, could not get metadata")
 
     def insert_one(self, bucket_id: str, event: Event) -> Event:
-        e = EventModel.from_event(self.bucket_keys[bucket_id], event)
-        e.save()
-        event.id = e.id
+
+        sql = r"BEGIN TRANSACTION;"
+        self.db.execute_sql(sql)
+        
+        sql = r"INSERT INTO eventmodel (`bucket_id`,`timestamp`, `duration`, `datastr`, `is_synced`) VALUES( {}, '{}','{}',\"{}\",	{} );".format(self.bucket_keys[bucket_id],event.timestamp,event.duration,event.data, 0)
+        self.db.execute_sql(sql.replace("\\", ""))
+        
+        sql = r"DROP TABLE IF EXISTS _RetainTable;"
+        self.db.execute_sql(sql)
+        
+        sql = r"DROP TABLE IF EXISTS _MaxId;"
+        self.db.execute_sql(sql)
+        
+        sql = r"CREATE TABLE _RetainTable (id, timestamp);"
+        self.db.execute_sql(sql)
+        
+        sql = r"CREATE TABLE _MaxId (id);"
+        self.db.execute_sql(sql)
+        
+        sql = r"INSERT INTO _MaxId SELECT MAX(id) FROM eventmodel;"
+        self.db.execute_sql(sql)
+        
+        sql = r"INSERT INTO _RetainTable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE '%facebook%' OR datastr LIKE '%twitter%' OR datastr LIKE '%instagram%' OR datastr LIKE '%messenger%' OR datastr LIKE '%reddit%' ) AND duration > 0 UNION SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE '%not-afK%') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE '%afk%' AND datastr NOT LIKE '%not-afk%' ORDER  BY id desc;"
+        self.db.execute_sql(sql)
+        
+        sql = r"DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);"
+        self.db.execute_sql(sql)
+        
+        sql = r"DROP TABLE _RetainTable;"
+        self.db.execute_sql(sql)
+        
+        sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
+        getEvent = self.db.execute_sql(sql)
+        
+        sql = r"COMMIT;"
+        self.db.execute_sql(sql)
+        print(getEvent)
+        # e = EventModel.from_event(self.bucket_keys[bucket_id], event)
+        # e.save()
+        # event.id = e.id
         return event
 
     def insert_many(self, bucket_id, events: List[Event], fast=False) -> None:
@@ -209,6 +236,13 @@ class PeeweeStorage(AbstractStorage):
             .get()
         )
 
+    def _get_event_by_id(self, event_id) -> EventModel:
+        return (
+            EventModel.select()
+            .where(EventModel.id == event_id)
+            .get()
+        )
+
     def _get_last(self, bucket_id) -> EventModel:
         return (
             EventModel.select()
@@ -225,6 +259,12 @@ class PeeweeStorage(AbstractStorage):
         e.save()
         event.id = e.id
         return event
+
+    def sync_event(self, event_id):
+        e = self._get_event_by_id(event_id)
+        e.is_synced = True
+        e.save()
+        return e
 
     def delete(self, bucket_id, event_id):
         return (
@@ -250,21 +290,6 @@ class PeeweeStorage(AbstractStorage):
         starttime: Optional[datetime] = None,
         endtime: Optional[datetime] = None,
     ):
-        """
-        Fetch events from a certain bucket, optionally from a given range of time.
-
-        Example raw query:
-
-            SELECT strftime(
-              "%Y-%m-%d %H:%M:%f+00:00",
-              ((julianday(timestamp) - 2440587.5) * 86400),
-              'unixepoch'
-            )
-            FROM eventmodel
-            WHERE eventmodel.timestamp > '2021-06-20'
-            LIMIT 10;
-
-        """
         if limit == 0:
             return []
         q = (
@@ -273,94 +298,15 @@ class PeeweeStorage(AbstractStorage):
             .order_by(EventModel.timestamp.desc())
             .limit(limit)
         )
-
-        q = self._where_range(q, starttime, endtime)
-
-        res = q.execute()
-        events = [Event(**e) for e in list(map(EventModel.json, res))]
-
-        # Trim events that are out of range (as done in aw-server-rust)
-        # TODO: Do the same for the other storage methods
-        for e in events:
-            if starttime:
-                if e.timestamp < starttime:
-                    e.timestamp = starttime
-            if endtime:
-                if e.timestamp + e.duration > endtime:
-                    e.duration = endtime - e.timestamp
-
-        return events
-
-    def get_eventcount(
-        self,
-        bucket_id: str,
-        starttime: Optional[datetime] = None,
-        endtime: Optional[datetime] = None,
-    ) -> int:
-        q = EventModel.select().where(EventModel.bucket == self.bucket_keys[bucket_id])
-        q = self._where_range(q, starttime, endtime)
-        return q.count()
-
-    def _where_range(
-        self,
-        q,
-        starttime: Optional[datetime] = None,
-        endtime: Optional[datetime] = None,
-    ):
-        # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
         if starttime:
+            # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
             starttime = starttime.astimezone(timezone.utc)
+            q = q.where(starttime <= EventModel.timestamp)
         if endtime:
             endtime = endtime.astimezone(timezone.utc)
-
-        if starttime:
-            # Faster WHERE to speed up slow query below, leads to ~2-3x speedup
-            # We'll assume events aren't >24h
-            q = q.where(starttime - timedelta(hours=24) <= EventModel.timestamp)
-
-            # This can be slow on large databases...
-            # Tried creating various indexes and using SQLite's unlikely() function, but it had no effect
-            q = q.where(
-                starttime <= dt_plus_duration(EventModel.timestamp, EventModel.duration)
-            )
-        if endtime:
             q = q.where(EventModel.timestamp <= endtime)
-
-        return q
-
-    def sync_event(self, event_id):
-        e = self._get_event_by_id(event_id)
-        e.is_synced = True
-        e.save()
-        return e
-    def delete_unwanted_events(self):
-        
-        sqlQuery = r"BEGIN TRANSACTION; DROP TABLE IF EXISTS _RetainTable; CREATE TEMP TABLE _RetainTable (id, timestamp); INSERT INTO _RetainTable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE '%facebook%' OR datastr LIKE '%twitter%' OR datastr LIKE '%instagram%' OR datastr LIKE '%messenger%' OR datastr LIKE '%reddit%' ) AND duration > 0 UNION SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE '%not-afK%') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE '%afk%' AND NOT LIKE '%not-afk%' ORDER  BY id desc; DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable); DROP TABLE _RetainTable; COMMIT;"
-        deleted =  self.db.execute_sql(sqlQuery)
-        print(deleted)
-        # sqlQuery = 'DROP TABLE IF EXISTS _RetainTable;'
-        # self.db.execute_sql(sqlQuery)
-        
-        # sqlQuery = 'CREATE TEMP TABLE _RetainTable (id, timestamp); --, bucket_id, timestamp, duration, datastr, is_synced, syncable);'
-        # self.db.execute_sql(sqlQuery)
-        
-        # sqlQuery = 'INSERT INTO _RetainTable -- SELECT  e.*, -- //       1 AS Syncable -- SELECT e.id, e.bucket_id, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 ) || CAST("00000+00" AS VARCHAR) AS timestamp  , e.duration, e.datastr, e.is_synced, --        1 AS Syncable'
-        # self.db.execute_sql(sqlQuery)
-        
-        # sqlQuery = 'SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE "%facebook%" OR datastr LIKE \'%twitter%\' OR datastr LIKE "%instagram%" OR datastr LIKE "%messenger%" OR datastr LIKE "%reddit%" ) AND duration > 0 UNION -- SELECT MAX(e.id), e.bucket_id, t.timestamp || CAST("00000+00" AS VARCHAR)  , e.duration, e.datastr, e.is_synced, SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE "%not-afK%") _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE "%"afk"%" ORDER  BY id desc;'
-        # self.db.execute_sql(sqlQuery)
-
-        # sqlQuery = 'SELECT * FROM _RetainTable; --SELECT COUNT(*) FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);'
-        # self.db.execute_sql(sqlQuery)
-
-        # sqlQuery = 'DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);'
-        # self.db.execute_sql(sqlQuery)
-
-        # sqlQuery = 'DROP TABLE _RetainTable;'
-        # self.db.execute_sql(sqlQuery)
-
-        # sqlQuery = 'COMMIT;'
-        # self.db.execute_sql(sqlQuery)
+        return [Event(**e) for e in list(map(EventModel.json, q.execute()))]
+    
     def get_all_events(
         self,
         offset: int,
@@ -374,7 +320,7 @@ class PeeweeStorage(AbstractStorage):
         afk = (
             EventModel.select()
             .order_by(EventModel.timestamp.desc())
-            .group_by(peewee.fn.strftime('%Y-%m-%d %H:%M:%S', EventModel.timestamp))
+            .group_by(fn.strftime('%Y-%m-%d %H:%M:%S', EventModel.timestamp))
             # .group_by(datetime.strptime(EventModel.timestamp, '%Y/%m/%d %H:%M:%S'))
             .offset(offset)
             .limit(limit)
@@ -417,3 +363,83 @@ class PeeweeStorage(AbstractStorage):
             afk = afk.where(EventModel.is_synced == synced)
             activity = activity.where(EventModel.is_synced == synced)
         return [Event(**e1) for e1 in list(map(EventModel.json, afk.execute()))] + [Event(**e2) for e2 in list(map(EventModel.json, activity.execute()))]
+
+    def get_all_new_events(
+        self,
+        offset: int,
+        limit: int,
+        starttime: Optional[datetime] = None,
+        endtime: Optional[datetime] = None,
+        synced: Optional[bool] = None,
+    ):
+        if limit == 0:
+            return []
+
+        
+        queryEvents = 'SELECT * FROM (SELECT e.id, e.bucket_id, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 ) || CAST(\'00000+00\' AS VARCHAR) AS timestamp  , e.duration, e.datastr, e.is_synced, 1 AS Syncable FROM   eventmodel e WHERE  ( datastr LIKE \'%facebook%\' OR datastr LIKE \'%twitter%\' OR datastr LIKE \'%instagram%\' OR datastr LIKE \'%messenger%\' OR datastr LIKE \'%reddit%\' ) AND duration > 0 UNION SELECT MAX(e.id), e.bucket_id, t.timestamp || CAST(\'00000+00\' AS VARCHAR)  , e.duration, e.datastr, e.is_synced, CASE WHEN id < _maxTable.MaxId THEN 1 ELSE 0 END AS Syncable FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE \'%not-afK%\') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE \'%"afk"%\' ORDER  BY timestamp desc) t'
+        executeQueryEvents = self.db.execute_sql(queryEvents)
+
+        queryEvents += 'LIMIT '+offset+', '+limit+''
+        events = executeQueryEvents.fetchall()
+        # afk = (
+        #     EventModel.select()
+        #     .order_by(EventModel.timestamp.desc())
+        #     .group_by(fn.strftime('%Y-%m-%d %H:%M:%S', EventModel.timestamp))
+        #     # .group_by(datetime.strptime(EventModel.timestamp, '%Y/%m/%d %H:%M:%S'))
+        #     .offset(offset)
+        #     .limit(limit)
+            
+        # )
+        # if starttime:
+        #     # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
+        #     starttime = starttime.astimezone(timezone.utc)
+        #     afk = afk.where(starttime <= EventModel.timestamp)
+        # if endtime:
+        #     endtime = endtime.astimezone(timezone.utc)
+        #     afk = afk.where(EventModel.timestamp <= endtime)
+        
+        # afk = afk.where( 
+        #     (EventModel.datastr.contains('"status": "afk"')))
+        
+        # activity = (
+        #     EventModel.select()
+        #     .order_by(EventModel.timestamp.desc())
+        #     .offset(offset)
+        #     .limit(limit)
+            
+        # )
+        # if starttime:
+        #     # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
+        #     starttime = starttime.astimezone(timezone.utc)
+        #     activity = activity.where(starttime <= EventModel.timestamp)
+        # if endtime:
+        #     endtime = endtime.astimezone(timezone.utc)
+        #     activity = activity.where(EventModel.timestamp <= endtime)
+        
+        # activity = activity.where( 
+        #     (EventModel.datastr.contains('reddit')) |
+        #     (EventModel.datastr.contains('Facebook')) |
+        #     (EventModel.datastr.contains('Instagram')) |
+        #     (EventModel.datastr.contains('devRant')) |
+        #     (EventModel.datastr.contains('Messenger')) |
+        #     (EventModel.datastr.contains('Twitter')))
+        # if synced is not None:
+        #     afk = afk.where(EventModel.is_synced == synced)
+        #     activity = activity.where(EventModel.is_synced == synced)
+        return [Event(**e1) for e1 in list(map(EventModel.json, events))]
+
+    def get_eventcount(
+        self,
+        bucket_id: str,
+        starttime: Optional[datetime] = None,
+        endtime: Optional[datetime] = None,
+    ):
+        q = EventModel.select().where(EventModel.bucket == self.bucket_keys[bucket_id])
+        if starttime:
+            # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
+            starttime = starttime.astimezone(timezone.utc)
+            q = q.where(starttime <= EventModel.timestamp)
+        if endtime:
+            endtime = endtime.astimezone(timezone.utc)
+            q = q.where(EventModel.timestamp <= endtime)
+        return q.count()
