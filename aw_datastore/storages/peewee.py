@@ -189,31 +189,31 @@ class PeeweeStorage(AbstractStorage):
         
         sql = r"DROP TABLE IF EXISTS _RetainTable;"
         c.execute(sql)
-        self.sql.commit()
+        
         
         sql = r"DROP TABLE IF EXISTS _MaxId;"
         c.execute(sql)
-        self.sql.commit()
+        
         
         sql = r"CREATE TABLE _RetainTable (id, timestamp);"
         c.execute(sql)
-        self.sql.commit()
+        
         
         sql = r"CREATE TABLE _MaxId (id);"
         c.execute(sql)
-        self.sql.commit()
+        
         
         sql = r"INSERT INTO _MaxId SELECT MAX(id) FROM eventmodel;"
         c.execute(sql)
-        self.sql.commit()
+        
         
         sql = r"INSERT INTO _RetainTable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE '%facebook%' OR datastr LIKE '%twitter%' OR datastr LIKE '%instagram%' OR datastr LIKE '%messenger%' OR datastr LIKE '%reddit%' ) AND duration > 0 UNION SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE '%not-afK%') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE '%afk%' AND datastr NOT LIKE '%not-afk%' ORDER  BY id desc;"
         c.execute(sql)
-        self.sql.commit()
+        
         
         sql = r"DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);"
         c.execute(sql)
-        self.sql.commit()
+        
         
         sql = r"DROP TABLE _RetainTable;"
         c.execute(sql)
