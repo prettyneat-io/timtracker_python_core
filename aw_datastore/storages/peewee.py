@@ -454,7 +454,7 @@ class PeeweeStorage(AbstractStorage):
         # if synced is not None:
         #     afk = afk.where(EventModel.is_synced == synced)
         #     activity = activity.where(EventModel.is_synced == synced)
-        return [Event(**e1) for e1 in list(map(EventModel.json, json.loads(eventsList)))]
+        return eventsList
 
     def get_eventcount(
         self,
