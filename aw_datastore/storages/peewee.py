@@ -180,12 +180,12 @@ class PeeweeStorage(AbstractStorage):
         # sql = r"BEGIN TRANSACTION;INSERT INTO eventmodel (`bucket_id`,`timestamp`, `duration`, `datastr`, `is_synced`) VALUES( {}, '{}','{}',\"{}\",{} );DROP TABLE IF EXISTS _RetainTable;DROP TABLE IF EXISTS _MaxId;CREATE TABLE _RetainTable (id, timestamp);CREATE TABLE _MaxId (id);INSERT INTO _MaxId SELECT MAX(id) FROM eventmodel;INSERT INTO _RetainTable SELECT id, timestamp FROM   eventmodel e WHERE  ( datastr LIKE '%facebook%' OR datastr LIKE '%twitter%' OR datastr LIKE '%instagram%' OR datastr LIKE '%messenger%' OR datastr LIKE '%reddit%' ) AND duration > 0 UNION SELECT MAX(e.id), e.timestamp FROM   eventmodel e INNER JOIN (SELECT Max(duration) AS Duration, SUBSTR(CAST(timestamp AS VARCHAR), 0, 22) AS timestamp FROM   eventmodel GROUP  BY bucket_id, datastr, SUBSTR(CAST(timestamp AS VARCHAR),0, 22 )) t ON e.Duration = t.Duration AND SUBSTR(CAST(e.timestamp AS VARCHAR), 0, 22) = SUBSTR(CAST(t.timestamp AS VARCHAR), 0, 22) INNER JOIN (SELECT Max(id) maxId FROM   eventmodel WHERE  datastr LIKE '%not-afK%') _maxTable ON 1 = 1 GROUP BY  e.bucket_id, t.timestamp, e.duration, e.datastr, e.is_synced HAVING  datastr LIKE '%afk%' AND datastr NOT LIKE '%not-afk%' ORDER  BY id desc;DELETE FROM eventmodel WHERE id NOT IN (SELECT id FROM _RetainTable);DROP TABLE _RetainTable;SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);COMMIT;"
         # self.db.execute_sql(sql.replace("\\", ""))
         
-        c = self.sql.cursor()
+        # c = self.sql.cursor()
         
-        sql = r"INSERT INTO eventmodel (`bucket_id`,`timestamp`, `duration`, `datastr`, `is_synced`) VALUES( {}, '{}','{}',\"{}\",	{} );".format(self.bucket_keys[bucket_id],event.timestamp,event.duration,event.data, 0)
-        print(sql.replace("\\", ""))
-        c.execute(sql.replace("\\", ""))
-        self.sql.commit()
+        # sql = r"INSERT INTO eventmodel (`bucket_id`,`timestamp`, `duration`, `datastr`, `is_synced`) VALUES( {}, '{}','{}',\"{}\",	{} );".format(self.bucket_keys[bucket_id],event.timestamp,event.duration,event.data, 0)
+        # print(sql.replace("\\", ""))
+        # c.execute(sql.replace("\\", ""))
+        # self.sql.commit()
         
         # sql = r"DROP TABLE IF EXISTS _RetainTable;"
         # c.execute(sql)
@@ -219,15 +219,15 @@ class PeeweeStorage(AbstractStorage):
         # c.execute(sql)
         # self.sql.commit()
 
-        sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
-        getEvent = c.execute(sql)
+        # sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
+        # getEvent = c.execute(sql)
 
-        print(getEvent)
+        # print(getEvent)
 
-        getEvent = getEvent.fetchone()[0]
-        # # e = EventModel.from_event(self.bucket_keys[bucket_id], event)
-        # e.save()
-        event.id = getEvent[0]
+        # getEvent = getEvent.fetchone()[0]
+        e = EventModel.from_event(self.bucket_keys[bucket_id], event)
+        e.save()
+        event.id = e.id
         return event
 
     def insert_many(self, bucket_id, events: List[Event], fast=False) -> None:
