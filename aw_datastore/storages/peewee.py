@@ -390,6 +390,7 @@ class PeeweeStorage(AbstractStorage):
         endtime: Optional[datetime] = None,
         synced: Optional[bool] = None,
     ):
+        eventsList = []
         if limit == 0:
             return []
 
@@ -399,7 +400,8 @@ class PeeweeStorage(AbstractStorage):
         print(queryEvents)
         executeQueryEvents = self.db.execute_sql(queryEvents)
         events = executeQueryEvents.fetchall()
-        print(events)
+        for event in events:
+            print(event)
         # afk = (
         #     EventModel.select()
         #     .order_by(EventModel.timestamp.desc())
