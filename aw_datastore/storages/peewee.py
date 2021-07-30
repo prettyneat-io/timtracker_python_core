@@ -184,7 +184,7 @@ class PeeweeStorage(AbstractStorage):
         
         sql = r"INSERT INTO eventmodel (`bucket_id`,`timestamp`, `duration`, `datastr`, `is_synced`) VALUES( {}, '{}','{}',\"{}\",	{} );".format(self.bucket_keys[bucket_id],event.timestamp,event.duration,event.data, 0)
         c.execute(sql.replace("\\", ""))
-        # self.sql.commit()
+        self.sql.commit()
         
         # sql = r"DROP TABLE IF EXISTS _RetainTable;"
         # c.execute(sql)
