@@ -215,9 +215,7 @@ class PeeweeStorage(AbstractStorage):
 
         sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
         getEvent = c.execute(sql)
-        
-        sql = r"COMMIT;"
-        c.execute(sql)
+
         print(getEvent)
 
         getEvent = getEvent.fetchone()[0]
