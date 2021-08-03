@@ -269,7 +269,7 @@ class PeeweeStorage(AbstractStorage):
                 .order_by(EventModel.timestamp.desc())
                 .get()
             )
-        except EventModel.Sets.DoesNotExist:
+        except EventModel.DoesNotExist:
             return print('that set does not exist')
 
     def replace_last(self, bucket_id, event):
