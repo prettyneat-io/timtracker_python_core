@@ -405,7 +405,7 @@ class PeeweeStorage(AbstractStorage):
                 "id": event[0],
                 "timestamp": event[2],
                 "duration": event[3],
-                "data": event[4],
+                "data": json.loads(event[4]),
                 "is_synced": bool(event[5]),
             })
         print(eventsList)
