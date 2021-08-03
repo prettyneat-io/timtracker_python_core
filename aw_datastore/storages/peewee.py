@@ -406,7 +406,7 @@ class PeeweeStorage(AbstractStorage):
                 "timestamp": event[2],
                 "duration": event[3],
                 "data": event[4],
-                "is_synced": event[5],
+                "is_synced": bool(event[5]),
             })
         print(eventsList)
         # afk = (
