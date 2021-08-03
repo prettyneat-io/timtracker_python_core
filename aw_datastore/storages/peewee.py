@@ -404,7 +404,7 @@ class PeeweeStorage(AbstractStorage):
             eventsList.append({
                 "id": event[0],
                 "timestamp": event[2],
-                "duration": event[3],
+                "duration": float(event[3]),
                 "data": json.loads(event[4]),
                 "is_synced": bool(event[5]),
             })
