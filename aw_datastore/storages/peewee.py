@@ -262,12 +262,15 @@ class PeeweeStorage(AbstractStorage):
         )
 
     def _get_last(self, bucket_id) -> EventModel:
-        return (
-            EventModel.select()
-            .where(EventModel.bucket == self.bucket_keys[bucket_id])
-            .order_by(EventModel.timestamp.desc())
-            .get()
-        )
+        try:
+            return (
+                EventModel.select()
+                .where(EventModel.bucket == self.bucket_keys[bucket_id])
+                .order_by(EventModel.timestamp.desc())
+                .get()
+            )
+        except EventModel.Sets.DoesNotExist:
+            return print('that set does not exist')
 
     def replace_last(self, bucket_id, event):
         e = self._get_last(bucket_id)
