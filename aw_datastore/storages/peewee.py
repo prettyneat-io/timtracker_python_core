@@ -223,13 +223,15 @@ class PeeweeStorage(AbstractStorage):
         c.execute(sql)
         self.sql.commit()
 
-        sql = r"SELECT id FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
-        getEvent = c.execute(sql)
+        # sql = r"SELECT id FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
+        # getEvent = c.execute(sql)
 
         # print(getEvent)
 
-        getEvent = getEvent.fetchone()[0]
-        event.id = getEvent[0]
+        q = EventModel.select().order_by(EventModel.id.desc()).get()
+
+        event.id = q.id
+        
         return event
 
     def insert_many(self, bucket_id, events: List[Event], fast=False) -> None:
