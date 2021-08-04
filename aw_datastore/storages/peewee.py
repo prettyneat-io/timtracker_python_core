@@ -195,11 +195,11 @@ class PeeweeStorage(AbstractStorage):
         # c.execute(sql)
         
         
-        sql = r"CREATE TABLE _RetainTable (id, timestamp);"
-        c.execute(sql)
+        # sql = r"CREATE TABLE _RetainTable (id, timestamp);"
+        # c.execute(sql)
         
         
-        sql = r"CREATE TABLE _MaxId (id);"
+        # sql = r"CREATE TABLE _MaxId (id);"
         c.execute(sql)
         
         
