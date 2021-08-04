@@ -412,7 +412,6 @@ class PeeweeStorage(AbstractStorage):
                 "data": json.loads(event[4]),
                 "is_synced": bool(event[5]),
             })
-        print(eventsList)
         # afk = (
         #     EventModel.select()
         #     .order_by(EventModel.timestamp.desc())
