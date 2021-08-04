@@ -81,6 +81,8 @@ class Datastore:
         return self.storage_strategy.sync_event(
             event_id
         )
+    def get_last_saved_event(self):
+        return self.storage_strategy.get_last_saved_event()
 
 
 class Bucket:

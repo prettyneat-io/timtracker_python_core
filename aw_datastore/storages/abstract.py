@@ -46,6 +46,11 @@ class AbstractStorage(metaclass=ABCMeta):
     ) -> List[Event]:
         raise NotImplementedError
 
+    def get_last_saved_event(
+        self,
+    ) -> Event:
+        raise NotImplementedError
+
     @abstractmethod
     def create_bucket(
         self,
