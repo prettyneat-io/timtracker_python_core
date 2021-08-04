@@ -219,10 +219,10 @@ class PeeweeStorage(AbstractStorage):
         c.execute(sql)
         self.sql.commit()
 
-        sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
-        getEvent = c.execute(sql)
+        # sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
+        # getEvent = c.execute(sql)
 
-        print(getEvent)
+        # print(getEvent)
 
         # getEvent = getEvent.fetchone()[0]
         e = EventModel.from_event(self.bucket_keys[bucket_id], event)
