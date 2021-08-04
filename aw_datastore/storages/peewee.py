@@ -187,12 +187,12 @@ class PeeweeStorage(AbstractStorage):
         # c.execute(sql.replace("\\", ""))
         # self.sql.commit()
         
-        sql = r"DROP TABLE IF EXISTS _RetainTable;"
-        c.execute(sql)
+        # sql = r"DROP TABLE IF EXISTS _RetainTable;"
+        # c.execute(sql)
         
         
-        sql = r"DROP TABLE IF EXISTS _MaxId;"
-        c.execute(sql)
+        # sql = r"DROP TABLE IF EXISTS _MaxId;"
+        # c.execute(sql)
         
         
         sql = r"CREATE TABLE _RetainTable (id, timestamp);"
@@ -215,8 +215,8 @@ class PeeweeStorage(AbstractStorage):
         c.execute(sql)
         
         
-        sql = r"DROP TABLE _RetainTable;"
-        c.execute(sql)
+        # sql = r"DROP TABLE _RetainTable;"
+        # c.execute(sql)
         self.sql.commit()
 
         # sql = r"SELECT * FROM eventmodel WHERE id = (SELECT MAX(id) AS latestId FROM _MaxId);"
