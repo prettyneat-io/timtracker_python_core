@@ -462,8 +462,8 @@ class PeeweeStorage(AbstractStorage):
     def get_last_saved_event(
         self,    
     ):
-        q = EventModel.select().order_by(EventModel.id.desc()).get()
-        return EventModel().json(q)
+        q = EventModel.select().order_by(EventModel.id.desc())
+        return EventModel.json(json.dumps(q))
     def get_eventcount(
         self,
         bucket_id: str,
