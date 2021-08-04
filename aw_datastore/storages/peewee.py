@@ -230,6 +230,7 @@ class PeeweeStorage(AbstractStorage):
 
         q = EventModel.select().order_by(EventModel.id.desc()).get()
 
+        q = q.json()
         event.id = q.id
         
         return event
