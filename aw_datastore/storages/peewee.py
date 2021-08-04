@@ -459,6 +459,10 @@ class PeeweeStorage(AbstractStorage):
         #     activity = activity.where(EventModel.is_synced == synced)
         return eventsList
 
+    def get_last_saved_event(
+        self,    
+    ):
+        return EventModel.select().order_by(EventModel.id.desc()).get()
     def get_eventcount(
         self,
         bucket_id: str,
