@@ -200,7 +200,7 @@ class PeeweeStorage(AbstractStorage):
         
         
         # sql = r"CREATE TABLE _MaxId (id);"
-        c.execute(sql)
+        # c.execute(sql)
         
         
         sql = r"INSERT INTO _MaxId SELECT MAX(id) FROM eventmodel;"
