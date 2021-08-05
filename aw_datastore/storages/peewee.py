@@ -344,11 +344,13 @@ class PeeweeStorage(AbstractStorage):
             EventModel.select()
             .order_by(EventModel.timestamp.desc())
             .group_by(fn.strftime('%Y-%m-%d %H:%M:%S', EventModel.timestamp))
+            
             # .group_by(datetime.strptime(EventModel.timestamp, '%Y/%m/%d %H:%M:%S'))
             .offset(offset)
             .limit(limit)
             
         )
+        afk.where(EventModel.duration > 30)
         if starttime:
             # Important to normalize datetimes to UTC, otherwise any UTC offset will be ignored
             starttime = starttime.astimezone(timezone.utc)
