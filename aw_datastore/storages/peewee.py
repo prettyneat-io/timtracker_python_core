@@ -274,6 +274,7 @@ class PeeweeStorage(AbstractStorage):
 
     def replace_last(self, bucket_id, event):
         e = self._get_last(bucket_id)
+        print(e)
         e.timestamp = event.timestamp
         e.duration = event.duration.total_seconds()
         e.datastr = json.dumps(event.data)
