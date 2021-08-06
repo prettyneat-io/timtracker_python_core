@@ -273,14 +273,25 @@ class PeeweeStorage(AbstractStorage):
             return print('that set does not exist')
 
     def replace_last(self, bucket_id, event):
-        e = self.get_last_saved_event()
-        if e is None:
-            return print('last event is None')
-        e.timestamp = event.timestamp
-        e.duration = event.duration.total_seconds()
-        e.datastr = json.dumps(event.data)
-        e.save()
-        event.id = e.id
+
+        qry=Event.update({
+            EventModel.timestamp: event.timestamp,
+            EventModel.duration: event.duration.total_seconds(),
+            EventModel.datastr: json.dumps(event.data),
+        })
+        print (qry.sql())
+
+        execute = qry.execute()
+        print(execute)
+
+        # e = self.get_last_saved_event()
+        # if e is None:
+        #     return print('last event is None')
+        # e.timestamp = event.timestamp
+        # e.duration = event.duration.total_seconds()
+        # e.datastr = json.dumps(event.data)
+        # e.save()
+        # event.id = e.id
         return event
 
     def sync_event(self, event_id):
