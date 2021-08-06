@@ -285,14 +285,7 @@ class PeeweeStorage(AbstractStorage):
 
         execute = qry.execute()
         print(execute)
-
-        # if e is None:
-        #     return print('last event is None')
-        # e.timestamp = event.timestamp
-        # e.duration = event.duration.total_seconds()
-        # e.datastr = json.dumps(event.data)
-        # e.save()
-        # event.id = e.id
+        event.id = e.id
         return event
 
     def sync_event(self, event_id):

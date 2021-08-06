@@ -45,9 +45,9 @@ def heartbeat_merge(
             new_duration = (
                 heartbeat.timestamp - last_event.timestamp
             ) + heartbeat.duration
-            if last_event.duration <= timedelta(0):
+            if last_event.duration < timedelta(0):
                 logger.warning(
-                    "Merging heartbeats would result in a negative or 0 duration, refusing to merge."
+                    "Merging heartbeats would result in a negative duration, refusing to merge."
                 )
             else:
                 # Taking the max of durations ensures heartbeats that end before the last event don't shorten it
