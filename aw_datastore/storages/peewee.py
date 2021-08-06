@@ -466,7 +466,7 @@ class PeeweeStorage(AbstractStorage):
 
     def get_last_saved_event(
         self,    
-    ):
+    ) -> EventModel:
         try:
             return (
                 EventModel.select()
