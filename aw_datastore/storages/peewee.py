@@ -304,10 +304,10 @@ class PeeweeStorage(AbstractStorage):
 
     def replace(self, bucket_id, event_id, event):
         e = self._get_event(bucket_id, event_id)
-        e.timestamp = event.timestamp
-        e.duration = event.duration.total_seconds()
-        e.datastr = json.dumps(event.data)
-        e.save()
+        # e.timestamp = event.timestamp
+        # e.duration = event.duration.total_seconds()
+        # e.datastr = json.dumps(event.data)
+        # e.save()
         event.id = e.id
         return event
 
