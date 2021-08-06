@@ -468,7 +468,11 @@ class PeeweeStorage(AbstractStorage):
         self,    
     ):
         try:
-            return EventModel.select().order_by(EventModel.id.desc()).get()
+            return (
+                EventModel.select()
+                .order_by(EventModel.timestamp.desc())
+                .get()
+            )
         except EventModel.DoesNotExist:
             return None
     def get_eventcount(
