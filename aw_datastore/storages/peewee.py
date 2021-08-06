@@ -280,7 +280,7 @@ class PeeweeStorage(AbstractStorage):
             EventModel.timestamp: event.timestamp,
             EventModel.duration: event.duration.total_seconds(),
             EventModel.datastr: json.dumps(event.data),
-        }).where(EventModel.id == e.id)
+        }).where(EventModel.id == e.id).where(EventModel.datastr == json.dumps(event.data))
         print (qry.sql())
 
         execute = qry.execute()
