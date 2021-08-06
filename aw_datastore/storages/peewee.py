@@ -273,7 +273,7 @@ class PeeweeStorage(AbstractStorage):
             return print('that set does not exist')
 
     def replace_last(self, bucket_id, event):
-        e = self._get_last(self, bucket_id)
+        e = self._get_last(bucket_id)
         print(e.id)
         qry=EventModel.update({
             EventModel.bucket: self.bucket_keys[bucket_id],
