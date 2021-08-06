@@ -470,7 +470,6 @@ class PeeweeStorage(AbstractStorage):
         try:
             return (
                 EventModel.select()
-                .where(EventModel.bucket == self.bucket_keys[bucket_id])
                 .order_by(EventModel.timestamp.desc())
                 .get()
             )
