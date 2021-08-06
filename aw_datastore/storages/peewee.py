@@ -276,6 +276,7 @@ class PeeweeStorage(AbstractStorage):
         e = self._get_last(self, bucket_id)
         print(e.id)
         qry=EventModel.update({
+            EventModel.bucket: self.bucket_keys[bucket_id],
             EventModel.timestamp: event.timestamp,
             EventModel.duration: event.duration.total_seconds(),
             EventModel.datastr: json.dumps(event.data),
