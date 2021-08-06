@@ -274,7 +274,7 @@ class PeeweeStorage(AbstractStorage):
 
     def replace_last(self, bucket_id, event):
 
-        qry=Event.update({
+        qry=EventModel.update({
             EventModel.timestamp: event.timestamp,
             EventModel.duration: event.duration.total_seconds(),
             EventModel.datastr: json.dumps(event.data),
