@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from typing import List, Optional
+import json
 
 from aw_core.models import Event
 
@@ -30,7 +31,7 @@ def heartbeat_merge(
     Merges two events if they have identical data
     and the heartbeat timestamp is within the pulsetime window.
     """
-    if last_event.data == heartbeat.data:
+    if json.dumps(last_event.data) == json.dumps(heartbeat.data):
         # Seconds between end of last_event and start of heartbeat
         pulseperiod_end = (
             last_event.timestamp + last_event.duration + timedelta(seconds=pulsetime)
